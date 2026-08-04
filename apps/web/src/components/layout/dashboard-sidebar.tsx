@@ -18,57 +18,59 @@ const navigationItems = [
     label: "Dashboard",
     href: "/",
     icon: LayoutDashboard,
-    current: true,
   },
   {
     label: "Agenda",
     href: "/agenda",
     icon: CalendarDays,
-    current: false,
   },
   {
     label: "Clientes",
     href: "/clientes",
     icon: Users,
-    current: false,
   },
   {
     label: "Funcionários",
     href: "/funcionarios",
     icon: UserCog,
-    current: false,
   },
   {
     label: "Serviços",
     href: "/servicos",
     icon: Scissors,
-    current: false,
   },
   {
     label: "Financeiro",
     href: "/financeiro",
     icon: WalletCards,
-    current: false,
   },
   {
     label: "Relatórios",
     href: "/relatorios",
     icon: ChartNoAxesColumn,
-    current: false,
   },
   {
     label: "Configurações",
     href: "/configuracoes",
     icon: Settings,
-    current: false,
   },
 ] as const;
 
 type DashboardSidebarProps = {
+  activePath?: string;
   variant?: "desktop" | "mobile";
 };
 
+function isNavigationItemActive(href: string, activePath: string) {
+  if (href === "/") {
+    return activePath === "/";
+  }
+
+  return activePath === href || activePath.startsWith(`${href}/`);
+}
+
 export function DashboardSidebar({
+  activePath = "/",
   variant = "desktop",
 }: DashboardSidebarProps) {
   if (variant === "mobile") {
@@ -80,15 +82,16 @@ export function DashboardSidebar({
         >
           {navigationItems.map((item) => {
             const Icon = item.icon;
+            const isCurrent = isNavigationItemActive(item.href, activePath);
 
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                aria-current={item.current ? "page" : undefined}
+                aria-current={isCurrent ? "page" : undefined}
                 className={cn(
                   "flex h-10 shrink-0 items-center gap-2 rounded-xl px-3 text-sm font-medium text-[#bfb6ad] transition-all duration-200 hover:bg-white/[0.08] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a76a]/60",
-                  item.current &&
+                  isCurrent &&
                     "bg-[#f4eadc] text-[#231b19] shadow-sm hover:bg-[#f4eadc] hover:text-[#231b19]",
                 )}
               >
@@ -127,25 +130,26 @@ export function DashboardSidebar({
         <div className="space-y-1.5">
           {navigationItems.map((item) => {
             const Icon = item.icon;
+            const isCurrent = isNavigationItemActive(item.href, activePath);
 
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                aria-current={item.current ? "page" : undefined}
+                aria-current={isCurrent ? "page" : undefined}
                 className={cn(
                   "group relative flex h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium text-[#bfb6ad] transition-all duration-200 hover:bg-white/[0.07] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a76a]/60",
-                  item.current &&
+                  isCurrent &&
                     "bg-white/10 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]",
                 )}
               >
-                {item.current ? (
+                {isCurrent ? (
                   <span className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-[#c9a76a]" />
                 ) : null}
                 <Icon
                   className={cn(
                     "size-[1.125rem] text-[#8f857c] transition-colors duration-200 group-hover:text-[#f3e7d4]",
-                    item.current && "text-[#c9a76a]",
+                    isCurrent && "text-[#c9a76a]",
                   )}
                   aria-hidden="true"
                 />

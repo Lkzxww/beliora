@@ -1,0 +1,29 @@
+import { CalendarPlus } from "lucide-react";
+
+import { PageHeader } from "@/components/shared";
+import { Button } from "@/components/ui/button";
+
+type AppointmentHeaderProps = Readonly<{
+  onCreateAppointment?: () => void;
+}>;
+
+export function AppointmentHeader({
+  onCreateAppointment,
+}: AppointmentHeaderProps) {
+  return (
+    <PageHeader
+      title="Agenda"
+      description="Gerencie os horários da sua equipe."
+      actions={
+        <Button
+          type="button"
+          onClick={onCreateAppointment}
+          className="h-12 w-full rounded-2xl bg-[#7a2638] px-6 text-sm font-semibold text-white shadow-[0_18px_38px_rgba(122,38,56,0.24)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#681f30] hover:shadow-[0_20px_44px_rgba(122,38,56,0.28)] active:translate-y-px sm:w-auto dark:bg-[#9f3a50] dark:hover:bg-[#b0455d]"
+        >
+          <CalendarPlus className="size-[1.125rem]" aria-hidden="true" />
+          Novo Agendamento
+        </Button>
+      }
+    />
+  );
+}
