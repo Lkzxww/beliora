@@ -1,0 +1,97 @@
+generator client {
+  provider = "prisma-client"
+  output = "../apps/web/src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELED
+}
+
+model Company {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  email     String?  @unique
+  phone     String?
+  logo      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  employees Employee[]
+  services  Service[]
+  customers Customer[]
+  appointments Appointment[]
+}
+
+
+model Employee {
+  id        String @id @default(cuid())
+  name      String
+  email     String?
+  phone     String?
+  active    Boolean @default(true)
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  appointments Appointment[]
+
+  createdAt DateTime @default(now())
+}
+
+model Service {
+  id          String @id @default(cuid())
+  name        String
+  description String?
+  duration    Int
+  price       Decimal
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  appointments Appointment[]
+
+  createdAt DateTime @default(now())
+}
+
+model Customer {
+  id    String @id @default(cuid())
+  name  String
+  phone String
+  email String?
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  appointments Appointment[]
+
+  createdAt DateTime @default(now())
+}
+
+model Appointment {
+  id String @id @default(cuid())
+
+  startsAt DateTime
+  endsAt   DateTime
+
+  status AppointmentStatus @default(SCHEDULED)
+
+  companyId String
+  customerId String
+  employeeId String
+  serviceId String
+
+  company  Company  @relation(fields: [companyId], references: [id])
+  customer Customer @relation(fields: [customerId], references: [id])
+  employee Employee @relation(fields: [employeeId], references: [id])
+  service  Service  @relation(fields: [serviceId], references: [id])
+
+  createdAt DateTime @default(now())
+}
