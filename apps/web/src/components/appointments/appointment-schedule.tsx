@@ -1,8 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { AppointmentCalendar } from "@/components/appointments/appointment-calendar";
+import {
+  addWeeks,
+  getAppointmentCalendarSummary,
+  getAppointmentDayLabel,
+  getAppointmentWeekDays,
+  getCurrentTimeMarker,
+  getStartOfWeek,
+  type CurrentTimeMarker,
+} from "@/components/appointments/appointment-calendar-utils";
 import { AppointmentCancelSheet } from "@/components/appointments/appointment-cancel-sheet";
 import { AppointmentCounters } from "@/components/appointments/appointment-counters";
 import { AppointmentDetails } from "@/components/appointments/appointment-details";
@@ -26,7 +35,6 @@ import type {
   AppointmentProfessional,
   AppointmentService,
   AppointmentViewMode,
-  AppointmentWeekDay,
 } from "@/types/appointment";
 
 type AppointmentScheduleProps = Readonly<{
@@ -35,19 +43,10 @@ type AppointmentScheduleProps = Readonly<{
   professionals: AppointmentProfessional[];
   services: AppointmentService[];
   statuses: AppointmentFilterOption[];
-  summary: {
-    monthLabel: string;
-    nextWeekHref: string;
-    previousWeekHref: string;
-    selectedView: AppointmentViewMode;
-    todayHref: string;
-    weekLabel: string;
-  };
   viewOptions: Array<{
     label: string;
     value: AppointmentViewMode;
   }>;
-  weekDays: AppointmentWeekDay[];
 }>;
 
 type AppointmentSheetMode = "create" | "edit";
@@ -96,11 +95,14 @@ export function AppointmentSchedule({
   professionals,
   services,
   statuses,
-  summary,
   viewOptions,
-  weekDays,
 }: AppointmentScheduleProps) {
   const [appointments, setAppointments] = useState(initialAppointments);
+  const [selectedWeekStart, setSelectedWeekStart] = useState(() =>
+    getStartOfWeek(new Date()),
+  );
+  const [currentTimeMarker, setCurrentTimeMarker] =
+    useState<CurrentTimeMarker>(() => getCurrentTimeMarker());
   const [selectedAppointmentId, setSelectedAppointmentId] = useState(
     defaultSelectedAppointmentId ?? initialAppointments[0]?.id ?? "",
   );
@@ -117,11 +119,34 @@ export function AppointmentSchedule({
     string | undefined
   >();
   const [filters, setFilters] = useState<AppointmentFilters>(initialFilters);
-
+  const selectedView: AppointmentViewMode = "week";
+  const weekDays = useMemo(
+    () => getAppointmentWeekDays(selectedWeekStart, currentTimeMarker.isoDate),
+    [currentTimeMarker.isoDate, selectedWeekStart],
+  );
+  const calendarSummary = useMemo(
+    () =>
+      getAppointmentCalendarSummary({
+        selectedView,
+        weekDays,
+      }),
+    [selectedView, weekDays],
+  );
+  const weekDateSet = useMemo(
+    () => new Set(weekDays.map((day) => day.isoDate)),
+    [weekDays],
+  );
+  const weekAppointments = useMemo(
+    () =>
+      appointments.filter((appointment) =>
+        weekDateSet.has(appointment.isoDate),
+      ),
+    [appointments, weekDateSet],
+  );
   const selectedAppointment =
-    appointments.find(
+    weekAppointments.find(
       (appointment) => appointment.id === selectedAppointmentId,
-    ) ?? appointments[0];
+    ) ?? weekAppointments[0];
   const editingAppointment = appointments.find(
     (appointment) => appointment.id === editingAppointmentId,
   );
@@ -139,6 +164,7 @@ export function AppointmentSchedule({
     const normalizedSearch = filters.search.trim().toLocaleLowerCase("pt-BR");
 
     return appointments.filter((appointment) => {
+      const matchesWeek = weekDateSet.has(appointment.isoDate);
       const matchesProfessional =
         filters.professionalId === "all" ||
         appointment.professional.id === filters.professionalId;
@@ -154,13 +180,26 @@ export function AppointmentSchedule({
           .includes(normalizedSearch);
 
       return (
+        matchesWeek &&
         matchesProfessional &&
         matchesService &&
         matchesStatus &&
         matchesSearch
       );
     });
-  }, [appointments, filters]);
+  }, [appointments, filters, weekDateSet]);
+
+  useEffect(() => {
+    function updateCurrentTime() {
+      setCurrentTimeMarker(getCurrentTimeMarker());
+    }
+
+    updateCurrentTime();
+
+    const intervalId = window.setInterval(updateCurrentTime, 60_000);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   function handleSelectAppointment(appointment: Appointment) {
     setSelectedAppointmentId(appointment.id);
@@ -168,6 +207,20 @@ export function AppointmentSchedule({
     if (window.matchMedia("(max-width: 767px)").matches) {
       setIsMobileDetailsOpen(true);
     }
+  }
+
+  function handleGoToToday() {
+    setSelectedWeekStart(getStartOfWeek(new Date()));
+  }
+
+  function handleGoToPreviousWeek() {
+    setSelectedWeekStart((currentWeekStart) =>
+      addWeeks(currentWeekStart, -1),
+    );
+  }
+
+  function handleGoToNextWeek() {
+    setSelectedWeekStart((currentWeekStart) => addWeeks(currentWeekStart, 1));
   }
 
   function openCreateAppointment() {
@@ -213,9 +266,8 @@ export function AppointmentSchedule({
       (item) => item.id === values.professionalId,
     );
     const service = services.find((item) => item.id === values.serviceId);
-    const weekDay = weekDays.find((day) => day.isoDate === values.isoDate);
 
-    if (!professional || !service || !weekDay) {
+    if (!professional || !service || !weekDateSet.has(values.isoDate)) {
       return;
     }
 
@@ -229,7 +281,7 @@ export function AppointmentSchedule({
           initials: getCustomerInitials(values.customerName),
           name: values.customerName,
         },
-        dayLabel: `${weekDay.weekDay}, ${weekDay.dayNumber} ago`,
+        dayLabel: getAppointmentDayLabel(values.isoDate),
         endTime: values.endTime,
         isoDate: values.isoDate,
         notes: values.notes,
@@ -255,7 +307,7 @@ export function AppointmentSchedule({
     const newAppointment: Appointment = {
       id: `apt-local-${Date.now()}`,
       isoDate: values.isoDate,
-      dayLabel: `${weekDay.weekDay}, ${weekDay.dayNumber} ago`,
+      dayLabel: getAppointmentDayLabel(values.isoDate),
       startTime: values.startTime,
       endTime: values.endTime,
       customer: {
@@ -309,13 +361,13 @@ export function AppointmentSchedule({
         className="overflow-hidden rounded-[2rem] border border-[#eadfd3] bg-white/[0.82] shadow-[0_18px_50px_rgba(48,37,28,0.08)] dark:border-white/10 dark:bg-card/[0.88]"
       >
         <AppointmentToolbar
-          monthLabel={summary.monthLabel}
-          nextWeekHref={summary.nextWeekHref}
-          previousWeekHref={summary.previousWeekHref}
-          selectedView={summary.selectedView}
-          todayHref={summary.todayHref}
+          monthLabel={calendarSummary.monthLabel}
+          selectedView={calendarSummary.selectedView}
           viewOptions={viewOptions}
-          weekLabel={summary.weekLabel}
+          weekLabel={calendarSummary.weekLabel}
+          onGoToNextWeek={handleGoToNextWeek}
+          onGoToPreviousWeek={handleGoToPreviousWeek}
+          onGoToToday={handleGoToToday}
         />
 
         <AppointmentFilter
@@ -333,12 +385,14 @@ export function AppointmentSchedule({
         <div className="min-w-0">
           <AppointmentCalendar
             appointments={filteredAppointments}
+            currentTimeMarker={currentTimeMarker}
             selectedAppointmentId={selectedAppointment?.id}
             weekDays={weekDays}
             onSelectAppointment={handleSelectAppointment}
           />
           <AppointmentMobileList
             appointments={filteredAppointments}
+            currentTimeMarker={currentTimeMarker}
             selectedAppointmentId={selectedAppointment?.id}
             weekDays={weekDays}
             onSelectAppointment={handleSelectAppointment}

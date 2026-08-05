@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -6,10 +8,10 @@ import { cn } from "@/lib/utils";
 
 type AppointmentToolbarProps = Readonly<{
   monthLabel: string;
-  nextWeekHref: string;
-  previousWeekHref: string;
+  onGoToNextWeek: () => void;
+  onGoToPreviousWeek: () => void;
+  onGoToToday: () => void;
   selectedView: AppointmentViewMode;
-  todayHref: string;
   viewOptions: Array<{
     label: string;
     value: AppointmentViewMode;
@@ -19,10 +21,10 @@ type AppointmentToolbarProps = Readonly<{
 
 export function AppointmentToolbar({
   monthLabel,
-  nextWeekHref,
-  previousWeekHref,
+  onGoToNextWeek,
+  onGoToPreviousWeek,
+  onGoToToday,
   selectedView,
-  todayHref,
   viewOptions,
   weekLabel,
 }: AppointmentToolbarProps) {
@@ -30,24 +32,26 @@ export function AppointmentToolbar({
     <div className="border-b border-[#efe4d8] px-4 py-4 dark:border-white/10 sm:px-5">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <Link
-            href={todayHref}
+          <button
+            type="button"
+            onClick={onGoToToday}
             className="inline-flex h-12 items-center justify-center rounded-2xl border border-[#e2d6c8] bg-white/75 px-5 text-sm font-semibold text-[#332b26] shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[#d7c6b3] hover:bg-white hover:shadow-[0_14px_30px_rgba(48,37,28,0.08)] active:translate-y-px dark:border-white/10 dark:bg-white/5 dark:text-foreground dark:hover:bg-white/10"
           >
             Hoje
-          </Link>
+          </button>
 
           <div
             className="flex h-12 min-w-0 items-center rounded-2xl border border-[#e2d6c8] bg-[#fffbf5] shadow-sm dark:border-white/10 dark:bg-white/[0.04]"
             aria-label={`Semana ${weekLabel}`}
           >
-            <Link
-              href={previousWeekHref}
+            <button
+              type="button"
+              onClick={onGoToPreviousWeek}
               aria-label="Semana anterior"
               className="grid size-12 shrink-0 place-items-center rounded-l-2xl text-[#6f6258] transition-all duration-200 hover:bg-[#f6eadb] hover:text-[#7a2638] active:translate-y-px dark:text-muted-foreground dark:hover:bg-white/10 dark:hover:text-foreground"
             >
               <ChevronLeft className="size-4" aria-hidden="true" />
-            </Link>
+            </button>
             <div className="min-w-[11rem] px-4 text-center sm:min-w-[13rem]">
               <p className="truncate text-base font-semibold text-[#211b18] dark:text-foreground">
                 {monthLabel}
@@ -56,13 +60,14 @@ export function AppointmentToolbar({
                 {weekLabel}
               </p>
             </div>
-            <Link
-              href={nextWeekHref}
+            <button
+              type="button"
+              onClick={onGoToNextWeek}
               aria-label="Próxima semana"
               className="grid size-12 shrink-0 place-items-center rounded-r-2xl text-[#6f6258] transition-all duration-200 hover:bg-[#f6eadb] hover:text-[#7a2638] active:translate-y-px dark:text-muted-foreground dark:hover:bg-white/10 dark:hover:text-foreground"
             >
               <ChevronRight className="size-4" aria-hidden="true" />
-            </Link>
+            </button>
           </div>
         </div>
 

@@ -6,9 +6,7 @@ import {
   appointmentProfessionals,
   appointmentServices,
   appointmentStatusOptions,
-  appointmentSummary,
   appointmentViewOptions,
-  appointmentWeekDays,
   mockAppointments,
 } from "@/mock/appointments";
 
@@ -26,9 +24,7 @@ export default function AgendaPage() {
         professionals={appointmentProfessionals}
         services={appointmentServices}
         statuses={appointmentStatusOptions}
-        summary={appointmentSummary}
         viewOptions={appointmentViewOptions}
-        weekDays={appointmentWeekDays}
       />
     </DashboardLayout>
   );

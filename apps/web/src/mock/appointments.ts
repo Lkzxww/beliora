@@ -4,54 +4,7 @@ import type {
   AppointmentProfessional,
   AppointmentService,
   AppointmentViewMode,
-  AppointmentWeekDay,
 } from "@/types/appointment";
-
-export const appointmentWeekDays: AppointmentWeekDay[] = [
-  {
-    isoDate: "2026-08-03",
-    weekDay: "Segunda",
-    shortLabel: "Seg",
-    dayNumber: "03",
-  },
-  {
-    isoDate: "2026-08-04",
-    weekDay: "Terça",
-    shortLabel: "Ter",
-    dayNumber: "04",
-    isToday: true,
-  },
-  {
-    isoDate: "2026-08-05",
-    weekDay: "Quarta",
-    shortLabel: "Qua",
-    dayNumber: "05",
-  },
-  {
-    isoDate: "2026-08-06",
-    weekDay: "Quinta",
-    shortLabel: "Qui",
-    dayNumber: "06",
-  },
-  {
-    isoDate: "2026-08-07",
-    weekDay: "Sexta",
-    shortLabel: "Sex",
-    dayNumber: "07",
-  },
-  {
-    isoDate: "2026-08-08",
-    weekDay: "Sábado",
-    shortLabel: "Sáb",
-    dayNumber: "08",
-  },
-  {
-    isoDate: "2026-08-09",
-    weekDay: "Domingo",
-    shortLabel: "Dom",
-    dayNumber: "09",
-  },
-];
 
 export const appointmentProfessionals: AppointmentProfessional[] = [
   {
@@ -203,6 +156,24 @@ export const mockAppointments: Appointment[] = [
     notes: "Retorno em 30 dias sugerido.",
   },
   {
+    id: "apt-007",
+    isoDate: "2026-08-05",
+    dayLabel: "Quarta, 05 ago",
+    startTime: "11:15",
+    endTime: "12:15",
+    customer: {
+      name: "Helena Castro",
+      phone: "(11) 94427-6120",
+      initials: "HC",
+    },
+    professional: bruna,
+    service: gelNails,
+    status: "scheduled",
+    room: "Mesa 02",
+    paymentStatus: "A receber",
+    notes: "Atendimento sobreposto para validar layout lado a lado.",
+  },
+  {
     id: "apt-004",
     isoDate: "2026-08-06",
     dayLabel: "Quinta, 06 ago",
@@ -254,19 +225,3 @@ export const mockAppointments: Appointment[] = [
     paymentStatus: "Cancelado",
   },
 ];
-
-export const appointmentSummary: {
-  monthLabel: string;
-  nextWeekHref: string;
-  previousWeekHref: string;
-  selectedView: AppointmentViewMode;
-  todayHref: string;
-  weekLabel: string;
-} = {
-  monthLabel: "Agosto 2026",
-  weekLabel: "03 - 09 ago 2026",
-  previousWeekHref: "/agenda?week=2026-07-27",
-  nextWeekHref: "/agenda?week=2026-08-10",
-  todayHref: "/agenda",
-  selectedView: "week",
-};

@@ -1,13 +1,15 @@
-import type { CSSProperties } from "react";
-import { CalendarX } from "lucide-react";
-
 import { AppointmentCard } from "@/components/appointments/appointment-card";
-import { EmptyState } from "@/components/shared";
+import {
+  getDayAppointmentLayouts,
+  getTimeOffsetPixels,
+  type CurrentTimeMarker,
+} from "@/components/appointments/appointment-calendar-utils";
 import type { Appointment, AppointmentWeekDay } from "@/types/appointment";
 import { cn } from "@/lib/utils";
 
 type AppointmentCalendarProps = Readonly<{
   appointments: Appointment[];
+  currentTimeMarker?: CurrentTimeMarker;
   onSelectAppointment?: (appointment: Appointment) => void;
   selectedAppointmentId?: string;
   weekDays: AppointmentWeekDay[];
@@ -34,72 +36,33 @@ const calendarDurationMinutes = calendarEndMinutes - calendarStartMinutes;
 const hourHeightPixels = 84;
 const calendarHeightPixels =
   (calendarDurationMinutes / 60) * hourHeightPixels;
-const minimumAppointmentHeightPixels = 148;
+const minimumAppointmentHeightPixels = 132;
+const appointmentColumnGapPixels = 8;
 const hourRows = timeSlots.slice(0, -1);
-const currentTimeMarker = "14:20";
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max);
-}
-
-function timeToMinutes(time: string) {
-  const [hours = 0, minutes = 0] = time.split(":").map(Number);
-
-  return hours * 60 + minutes;
-}
-
-function getTimeOffsetPixels(time: string) {
-  const minutes = timeToMinutes(time);
-  const offset =
-    ((minutes - calendarStartMinutes) / 60) * hourHeightPixels;
-
-  return clamp(offset, 0, calendarHeightPixels);
-}
-
-function getAppointmentStyle(appointment: Appointment): CSSProperties {
-  const startsAt = timeToMinutes(appointment.startTime);
-  const endsAt = timeToMinutes(appointment.endTime);
-  const durationMinutes = Math.max(endsAt - startsAt, 30);
-  const proportionalHeight = (durationMinutes / 60) * hourHeightPixels;
-  const top = clamp(
-    ((startsAt - calendarStartMinutes) / 60) * hourHeightPixels,
-    0,
-    calendarHeightPixels - minimumAppointmentHeightPixels - 12,
-  );
-  const availableHeight = calendarHeightPixels - top - 12;
-  const height = clamp(
-    proportionalHeight,
-    minimumAppointmentHeightPixels,
-    availableHeight,
-  );
-
-  return {
-    height,
-    top,
-  };
-}
 
 export function AppointmentCalendar({
   appointments,
+  currentTimeMarker,
   onSelectAppointment,
   selectedAppointmentId,
   weekDays,
 }: AppointmentCalendarProps) {
-  if (appointments.length === 0) {
-    return (
-      <EmptyState
-        icon={<CalendarX className="size-5" aria-hidden="true" />}
-        title="Nenhum atendimento nesta semana"
-        description="Quando novos agendamentos forem criados, a grade semanal exibirá os horários por dia."
-      />
-    );
-  }
+  const shouldShowCurrentTime =
+    currentTimeMarker &&
+    weekDays.some((day) => day.isoDate === currentTimeMarker.isoDate);
+  const currentTimeOffset = shouldShowCurrentTime
+    ? getTimeOffsetPixels(currentTimeMarker.timeLabel, {
+        calendarHeightPixels,
+        calendarStartMinutes,
+        hourHeightPixels,
+      })
+    : undefined;
 
   return (
     <section className="hidden rounded-[2rem] border border-[#eadfd3] bg-white/[0.82] shadow-[0_18px_50px_rgba(48,37,28,0.08)] dark:border-white/10 dark:bg-card/[0.88] md:block">
-      <div className="overflow-x-auto scroll-smooth rounded-[2rem]">
-        <div className="min-w-[1280px]">
-          <div className="sticky top-[4.5rem] z-30 grid grid-cols-[96px_repeat(7,minmax(164px,1fr))] border-b border-[#efe4d8] bg-[#fffbf5]/95 backdrop-blur dark:border-white/10 dark:bg-[#161412]/95">
+      <div className="overflow-x-auto scroll-smooth rounded-[2rem] overscroll-x-contain [scrollbar-width:thin]">
+        <div className="min-w-[1916px]">
+          <div className="sticky top-[4.5rem] z-30 grid grid-cols-[96px_repeat(7,minmax(260px,1fr))] border-b border-[#efe4d8] bg-[#fffbf5]/95 backdrop-blur dark:border-white/10 dark:bg-[#161412]/95">
             <div className="sticky left-0 z-40 border-r border-[#efe4d8] bg-[#fffbf5]/95 px-4 py-4 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[#9a8a7a] dark:border-white/10 dark:bg-[#161412]/95 dark:text-muted-foreground">
               Horário
             </div>
@@ -132,7 +95,7 @@ export function AppointmentCalendar({
             ))}
           </div>
 
-          <div className="relative grid grid-cols-[96px_repeat(7,minmax(164px,1fr))]">
+          <div className="relative grid grid-cols-[96px_repeat(7,minmax(260px,1fr))]">
             <div
               className="sticky left-0 z-20 border-r border-[#efe4d8] bg-[#fffaf4]/95 dark:border-white/10 dark:bg-[#161412]/95"
               style={{ height: calendarHeightPixels }}
@@ -153,27 +116,45 @@ export function AppointmentCalendar({
                     index === 0 && "translate-y-0",
                     index === timeSlots.length - 1 && "-translate-y-full",
                   )}
-                  style={{ top: getTimeOffsetPixels(time) }}
+                  style={{
+                    top: getTimeOffsetPixels(time, {
+                      calendarHeightPixels,
+                      calendarStartMinutes,
+                      hourHeightPixels,
+                    }),
+                  }}
                 >
                   {time}
                 </span>
               ))}
             </div>
 
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute left-[96px] right-0 z-20 flex items-center"
-              style={{ top: getTimeOffsetPixels(currentTimeMarker) }}
-            >
-              <span className="ml-2 rounded-full bg-[#c53636] px-2 py-0.5 text-[0.65rem] font-semibold text-white shadow-sm">
-                {currentTimeMarker}
-              </span>
-              <span className="h-px flex-1 bg-[#c53636] shadow-[0_0_0_1px_rgba(197,54,54,0.16)]" />
-            </div>
+            {currentTimeOffset !== undefined && currentTimeMarker ? (
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute left-[96px] right-0 z-20 flex items-center"
+                style={{ top: currentTimeOffset }}
+              >
+                <span className="ml-2 rounded-full bg-[#c53636] px-2 py-0.5 text-[0.65rem] font-semibold text-white shadow-sm">
+                  {currentTimeMarker.timeLabel}
+                </span>
+                <span className="h-px flex-1 bg-[#c53636] shadow-[0_0_0_1px_rgba(197,54,54,0.16)]" />
+              </div>
+            ) : null}
 
             {weekDays.map((day) => {
               const dayAppointments = appointments.filter(
                 (appointment) => appointment.isoDate === day.isoDate,
+              );
+              const dayAppointmentLayouts = getDayAppointmentLayouts(
+                dayAppointments,
+                {
+                  calendarHeightPixels,
+                  calendarStartMinutes,
+                  columnGapPixels: appointmentColumnGapPixels,
+                  hourHeightPixels,
+                  minimumHeightPixels: minimumAppointmentHeightPixels,
+                },
               );
 
               return (
@@ -198,21 +179,31 @@ export function AppointmentCalendar({
                     ))}
                   </div>
 
-                  {dayAppointments.length > 0 ? (
-                    dayAppointments.map((appointment) => (
-                      <div
-                        key={appointment.id}
-                        className="absolute left-3 right-3 z-10"
-                        style={getAppointmentStyle(appointment)}
-                      >
-                        <AppointmentCard
-                          appointment={appointment}
-                          compact
-                          isSelected={appointment.id === selectedAppointmentId}
-                          onSelectAppointment={onSelectAppointment}
-                        />
-                      </div>
-                    ))
+                  {dayAppointmentLayouts.length > 0 ? (
+                    <div className="absolute inset-x-3 inset-y-0 z-10">
+                      {dayAppointmentLayouts.map((layout) => (
+                        <div
+                          key={layout.appointment.id}
+                          className="absolute"
+                          style={{
+                            height: layout.height,
+                            left: layout.left,
+                            top: layout.top,
+                            width: layout.width,
+                          }}
+                        >
+                          <AppointmentCard
+                            appointment={layout.appointment}
+                            compact
+                            dense={layout.isOverlapping}
+                            isSelected={
+                              layout.appointment.id === selectedAppointmentId
+                            }
+                            onSelectAppointment={onSelectAppointment}
+                          />
+                        </div>
+                      ))}
+                    </div>
                   ) : (
                     <div className="absolute inset-x-3 top-4 z-10 rounded-2xl border border-dashed border-[#ead9c4] bg-[#fffaf4]/80 px-4 py-5 text-center text-xs font-medium leading-5 text-[#9c8f84] dark:border-white/10 dark:bg-white/[0.03] dark:text-muted-foreground">
                       Agenda livre
