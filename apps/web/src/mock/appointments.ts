@@ -109,6 +109,7 @@ export const mockAppointments: Appointment[] = [
     startTime: "09:00",
     endTime: "10:30",
     customer: {
+      id: "mock-customer-marina",
       name: "Marina Alves",
       phone: "(11) 99822-4101",
       initials: "MA",
@@ -127,6 +128,7 @@ export const mockAppointments: Appointment[] = [
     startTime: "10:45",
     endTime: "12:00",
     customer: {
+      id: "mock-customer-camila",
       name: "Camila Torres",
       phone: "(11) 98774-3310",
       initials: "CT",
@@ -144,6 +146,7 @@ export const mockAppointments: Appointment[] = [
     startTime: "11:00",
     endTime: "11:45",
     customer: {
+      id: "mock-customer-renata",
       name: "Renata Lima",
       phone: "(11) 91245-8812",
       initials: "RL",
@@ -162,6 +165,7 @@ export const mockAppointments: Appointment[] = [
     startTime: "11:15",
     endTime: "12:15",
     customer: {
+      id: "mock-customer-helena",
       name: "Helena Castro",
       phone: "(11) 94427-6120",
       initials: "HC",
@@ -180,6 +184,7 @@ export const mockAppointments: Appointment[] = [
     startTime: "14:00",
     endTime: "15:00",
     customer: {
+      id: "mock-customer-bianca",
       name: "Bianca Rocha",
       phone: "(11) 97662-9044",
       initials: "BR",
@@ -197,6 +202,7 @@ export const mockAppointments: Appointment[] = [
     startTime: "16:30",
     endTime: "18:00",
     customer: {
+      id: "mock-customer-laura",
       name: "Laura Mendes",
       phone: "(11) 93301-7782",
       initials: "LM",
@@ -214,6 +220,7 @@ export const mockAppointments: Appointment[] = [
     startTime: "13:15",
     endTime: "14:00",
     customer: {
+      id: "mock-customer-paula",
       name: "Paula Nunes",
       phone: "(11) 94511-0090",
       initials: "PN",

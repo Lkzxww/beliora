@@ -875,6 +875,7 @@ export const CustomerScalarFieldEnum = {
   name: 'name',
   phone: 'phone',
   email: 'email',
+  archivedAt: 'archivedAt',
   companyId: 'companyId',
   createdAt: 'createdAt'
 } as const
@@ -886,6 +887,7 @@ export const AppointmentScalarFieldEnum = {
   id: 'id',
   startsAt: 'startsAt',
   endsAt: 'endsAt',
+  notes: 'notes',
   status: 'status',
   companyId: 'companyId',
   customerId: 'customerId',

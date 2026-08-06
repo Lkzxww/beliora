@@ -9,6 +9,8 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type {
+  AppointmentCustomerOption,
+  AppointmentFormValues,
   AppointmentProfessional,
   AppointmentService,
   AppointmentWeekDay,
@@ -16,10 +18,12 @@ import type {
 import { cn } from "@/lib/utils";
 
 type AppointmentFormProps = Readonly<{
+  actionError?: string;
+  customers: AppointmentCustomerOption[];
   initialValues?: NewAppointmentFormValues;
   isOpen: boolean;
   onCancel: () => void;
-  onSubmitAppointment: (values: NewAppointmentFormValues) => Promise<void>;
+  onSubmitAppointment: (values: NewAppointmentFormValues) => Promise<boolean>;
   professionals: AppointmentProfessional[];
   services: AppointmentService[];
   submitLabel?: string;
@@ -35,18 +39,20 @@ function timeToMinutes(time: string) {
 }
 
 function createAppointmentFormSchema({
+  customerIds,
   professionalIds,
   serviceIds,
   weekDates,
 }: {
+  customerIds: string[];
   professionalIds: string[];
   serviceIds: string[];
   weekDates: string[];
 }) {
   return z
     .object({
-      customerName: z.string().trim().min(1, "Informe o cliente."),
-      professionalId: z.string().trim().min(1, "Escolha um profissional."),
+      customerId: z.string().trim().min(1, "Escolha um cliente."),
+      employeeId: z.string().trim().min(1, "Escolha um profissional."),
       serviceId: z.string().trim().min(1, "Escolha um serviço."),
       isoDate: z.string().trim().min(1, "Escolha uma data."),
       startTime: z
@@ -62,11 +68,19 @@ function createAppointmentFormSchema({
       notes: z.string().trim().min(1, "Adicione uma observação."),
     })
     .superRefine((values, context) => {
-      if (!professionalIds.includes(values.professionalId)) {
+      if (!customerIds.includes(values.customerId)) {
+        context.addIssue({
+          code: "custom",
+          message: "Escolha um cliente válido.",
+          path: ["customerId"],
+        });
+      }
+
+      if (!professionalIds.includes(values.employeeId)) {
         context.addIssue({
           code: "custom",
           message: "Escolha um profissional válido.",
-          path: ["professionalId"],
+          path: ["employeeId"],
         });
       }
 
@@ -100,9 +114,7 @@ function createAppointmentFormSchema({
     });
 }
 
-export type NewAppointmentFormValues = z.infer<
-  ReturnType<typeof createAppointmentFormSchema>
->;
+export type NewAppointmentFormValues = AppointmentFormValues;
 
 function FieldError({ message }: Readonly<{ message?: string }>) {
   if (!message) {
@@ -129,6 +141,8 @@ const textAreaClassName =
   "min-h-28 w-full resize-none rounded-2xl border border-[#e2d6c8] bg-white/85 px-4 py-3 text-sm font-medium leading-6 text-[#2b2622] shadow-sm outline-none transition-all duration-200 placeholder:text-[#9b8f84] hover:bg-white focus:border-[#c9a76a] focus:ring-3 focus:ring-[#c9a76a]/30 dark:border-white/10 dark:bg-white/5 dark:text-foreground";
 
 export function AppointmentForm({
+  actionError,
+  customers,
   initialValues,
   isOpen,
   onCancel,
@@ -142,24 +156,25 @@ export function AppointmentForm({
   const schema = useMemo(
     () =>
       createAppointmentFormSchema({
+        customerIds: customers.map((customer) => customer.id),
         professionalIds: professionals.map((professional) => professional.id),
         serviceIds: services.map((service) => service.id),
         weekDates: weekDays.map((day) => day.isoDate),
       }),
-    [professionals, services, weekDays],
+    [customers, professionals, services, weekDays],
   );
   const defaultValues: NewAppointmentFormValues = useMemo(
     () =>
       initialValues ?? {
-        customerName: "",
-        professionalId: professionals[0]?.id ?? "",
+        customerId: customers[0]?.id ?? "",
+        employeeId: professionals[0]?.id ?? "",
         serviceId: services[0]?.id ?? "",
         isoDate: today?.isoDate ?? "",
         startTime: "09:00",
         endTime: "10:00",
         notes: "",
       },
-    [initialValues, professionals, services, today?.isoDate],
+    [customers, initialValues, professionals, services, today?.isoDate],
   );
   const {
     formState: { errors, isSubmitting },
@@ -176,8 +191,11 @@ export function AppointmentForm({
   }, [defaultValues, isOpen, reset]);
 
   async function submitForm(values: NewAppointmentFormValues) {
-    await onSubmitAppointment(values);
-    reset(defaultValues);
+    const wasSuccessful = await onSubmitAppointment(values);
+
+    if (wasSuccessful) {
+      reset(defaultValues);
+    }
   }
 
   function cancelForm() {
@@ -196,24 +214,38 @@ export function AppointmentForm({
       className="flex min-h-0 flex-1 flex-col"
     >
       <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
+        {actionError ? (
+          <div
+            role="alert"
+            className="rounded-2xl border border-[#e8c7cf] bg-[#faedf0] px-4 py-3 text-sm font-semibold leading-6 text-[#8b3348] dark:border-[#f0bcc8]/25 dark:bg-[#7a2638]/[0.18] dark:text-[#f0bcc8]"
+          >
+            {actionError}
+          </div>
+        ) : null}
+
         <label className="space-y-2.5">
           <span className={fieldLabelClassName}>Cliente</span>
-          <Input
-            {...register("customerName")}
-            className={fieldClassName}
-            placeholder="Nome da cliente"
-            aria-invalid={Boolean(errors.customerName)}
-          />
-          <FieldError message={errors.customerName?.message} />
+          <select
+            {...register("customerId")}
+            className={selectClassName}
+            aria-invalid={Boolean(errors.customerId)}
+          >
+            {customers.map((customer) => (
+              <option key={customer.id} value={customer.id}>
+                {customer.name}
+              </option>
+            ))}
+          </select>
+          <FieldError message={errors.customerId?.message} />
         </label>
 
         <div className="grid gap-5 sm:grid-cols-2">
           <label className="space-y-2.5">
             <span className={fieldLabelClassName}>Profissional</span>
             <select
-              {...register("professionalId")}
+              {...register("employeeId")}
               className={selectClassName}
-              aria-invalid={Boolean(errors.professionalId)}
+              aria-invalid={Boolean(errors.employeeId)}
             >
               {professionals.map((professional) => (
                 <option key={professional.id} value={professional.id}>
@@ -221,7 +253,7 @@ export function AppointmentForm({
                 </option>
               ))}
             </select>
-            <FieldError message={errors.professionalId?.message} />
+            <FieldError message={errors.employeeId?.message} />
           </label>
 
           <label className="space-y-2.5">

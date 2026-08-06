@@ -2,11 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import { cancelAppointment } from "@/actions/appointments/cancel-appointment";
+import { createAppointment } from "@/actions/appointments/create-appointment";
+import { updateAppointment } from "@/actions/appointments/update-appointment";
 import { AppointmentCalendar } from "@/components/appointments/appointment-calendar";
 import {
   addWeeks,
   getAppointmentCalendarSummary,
-  getAppointmentDayLabel,
   getAppointmentWeekDays,
   getCurrentTimeMarker,
   getStartOfWeek,
@@ -30,6 +32,7 @@ import {
 } from "@/components/ui/sheet";
 import type {
   Appointment,
+  AppointmentCustomerOption,
   AppointmentFilters,
   AppointmentFilterOption,
   AppointmentProfessional,
@@ -39,6 +42,7 @@ import type {
 
 type AppointmentScheduleProps = Readonly<{
   appointments: Appointment[];
+  customers: AppointmentCustomerOption[];
   defaultSelectedAppointmentId?: string;
   professionals: AppointmentProfessional[];
   services: AppointmentService[];
@@ -58,32 +62,15 @@ const initialFilters: AppointmentFilters = {
   status: "all",
 };
 
-function getCustomerInitials(customerName: string) {
-  const initials = customerName
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((namePart) => namePart[0]?.toUpperCase())
-    .join("");
-
-  return initials || "CL";
-}
-
-function waitForMockSave() {
-  return new Promise<void>((resolve) => {
-    window.setTimeout(resolve, 450);
-  });
-}
-
 function getAppointmentFormValues(
   appointment: Appointment,
 ): NewAppointmentFormValues {
   return {
-    customerName: appointment.customer.name,
+    customerId: appointment.customer.id,
     endTime: appointment.endTime,
     isoDate: appointment.isoDate,
     notes: appointment.notes ?? "Sem observações.",
-    professionalId: appointment.professional.id,
+    employeeId: appointment.professional.id,
     serviceId: appointment.service.id,
     startTime: appointment.startTime,
   };
@@ -91,6 +78,7 @@ function getAppointmentFormValues(
 
 export function AppointmentSchedule({
   appointments: initialAppointments,
+  customers,
   defaultSelectedAppointmentId,
   professionals,
   services,
@@ -114,6 +102,14 @@ export function AppointmentSchedule({
     string | undefined
   >();
   const [isCancelAppointmentOpen, setIsCancelAppointmentOpen] =
+    useState(false);
+  const [appointmentActionError, setAppointmentActionError] = useState<
+    string | undefined
+  >();
+  const [cancelAppointmentError, setCancelAppointmentError] = useState<
+    string | undefined
+  >();
+  const [isCancelAppointmentPending, setIsCancelAppointmentPending] =
     useState(false);
   const [appointmentPendingCancelId, setAppointmentPendingCancelId] = useState<
     string | undefined
@@ -224,12 +220,14 @@ export function AppointmentSchedule({
   }
 
   function openCreateAppointment() {
+    setAppointmentActionError(undefined);
     setAppointmentSheetMode("create");
     setEditingAppointmentId(undefined);
     setIsAppointmentSheetOpen(true);
   }
 
   function openEditAppointment(appointment: Appointment) {
+    setAppointmentActionError(undefined);
     setSelectedAppointmentId(appointment.id);
     setAppointmentSheetMode("edit");
     setEditingAppointmentId(appointment.id);
@@ -238,6 +236,7 @@ export function AppointmentSchedule({
   }
 
   function openCancelAppointment(appointment: Appointment) {
+    setCancelAppointmentError(undefined);
     setSelectedAppointmentId(appointment.id);
     setAppointmentPendingCancelId(appointment.id);
     setIsMobileDetailsOpen(false);
@@ -248,6 +247,7 @@ export function AppointmentSchedule({
     setIsAppointmentSheetOpen(isOpen);
 
     if (!isOpen) {
+      setAppointmentActionError(undefined);
       setAppointmentSheetMode("create");
       setEditingAppointmentId(undefined);
     }
@@ -257,97 +257,82 @@ export function AppointmentSchedule({
     setIsCancelAppointmentOpen(isOpen);
 
     if (!isOpen) {
+      setCancelAppointmentError(undefined);
       setAppointmentPendingCancelId(undefined);
     }
   }
 
   async function handleSubmitAppointment(values: NewAppointmentFormValues) {
-    const professional = professionals.find(
-      (item) => item.id === values.professionalId,
-    );
-    const service = services.find((item) => item.id === values.serviceId);
-
-    if (!professional || !service || !weekDateSet.has(values.isoDate)) {
-      return;
-    }
-
-    await waitForMockSave();
+    setAppointmentActionError(undefined);
 
     if (appointmentSheetMode === "edit" && editingAppointment) {
-      const updatedAppointment: Appointment = {
-        ...editingAppointment,
-        customer: {
-          ...editingAppointment.customer,
-          initials: getCustomerInitials(values.customerName),
-          name: values.customerName,
-        },
-        dayLabel: getAppointmentDayLabel(values.isoDate),
-        endTime: values.endTime,
-        isoDate: values.isoDate,
-        notes: values.notes,
-        professional,
-        service,
-        startTime: values.startTime,
-      };
+      const result = await updateAppointment({
+        appointmentId: editingAppointment.id,
+        values,
+      });
+
+      if (!result.success) {
+        setAppointmentActionError(result.message);
+        return false;
+      }
 
       setAppointments((currentAppointments) =>
         currentAppointments.map((appointment) =>
-          appointment.id === updatedAppointment.id
-            ? updatedAppointment
+          appointment.id === result.appointment.id
+            ? result.appointment
             : appointment,
         ),
       );
-      setSelectedAppointmentId(updatedAppointment.id);
+      setSelectedAppointmentId(result.appointment.id);
       setIsMobileDetailsOpen(false);
       handleAppointmentSheetOpenChange(false);
 
-      return;
+      return true;
     }
 
-    const newAppointment: Appointment = {
-      id: `apt-local-${Date.now()}`,
-      isoDate: values.isoDate,
-      dayLabel: getAppointmentDayLabel(values.isoDate),
-      startTime: values.startTime,
-      endTime: values.endTime,
-      customer: {
-        name: values.customerName,
-        phone: "Não informado",
-        initials: getCustomerInitials(values.customerName),
-      },
-      professional,
-      service,
-      status: "scheduled",
-      room: "A definir",
-      paymentStatus: "A receber",
-      notes: values.notes,
-    };
+    const result = await createAppointment(values);
+
+    if (!result.success) {
+      setAppointmentActionError(result.message);
+      return false;
+    }
 
     setAppointments((currentAppointments) => [
       ...currentAppointments,
-      newAppointment,
+      result.appointment,
     ]);
-    setSelectedAppointmentId(newAppointment.id);
+    setSelectedAppointmentId(result.appointment.id);
     setIsMobileDetailsOpen(false);
     handleAppointmentSheetOpenChange(false);
+
+    return true;
   }
 
-  function handleConfirmCancelAppointment() {
+  async function handleConfirmCancelAppointment() {
     if (!appointmentPendingCancelId) {
+      return;
+    }
+
+    setCancelAppointmentError(undefined);
+    setIsCancelAppointmentPending(true);
+
+    const result = await cancelAppointment(appointmentPendingCancelId);
+
+    setIsCancelAppointmentPending(false);
+
+    if (!result.success) {
+      setCancelAppointmentError(result.message);
       return;
     }
 
     setAppointments((currentAppointments) =>
       currentAppointments.map((appointment) =>
-        appointment.id === appointmentPendingCancelId
-          ? {
-              ...appointment,
-              status: "canceled",
-            }
+        appointment.id === result.appointment.id
+          ? result.appointment
           : appointment,
       ),
     );
-    setSelectedAppointmentId(appointmentPendingCancelId);
+    setSelectedAppointmentId(result.appointment.id);
     setAppointmentPendingCancelId(undefined);
     setIsCancelAppointmentOpen(false);
   }
@@ -428,7 +413,9 @@ export function AppointmentSchedule({
       </Sheet>
 
       <AppointmentNewSheet
+        actionError={appointmentActionError}
         appointment={editingAppointment}
+        customers={customers}
         initialValues={appointmentFormInitialValues}
         isOpen={isAppointmentSheetOpen}
         mode={appointmentSheetMode}
@@ -441,7 +428,9 @@ export function AppointmentSchedule({
 
       <AppointmentCancelSheet
         appointment={appointmentPendingCancel}
+        errorMessage={cancelAppointmentError}
         isOpen={isCancelAppointmentOpen}
+        isPending={isCancelAppointmentPending}
         onConfirmCancel={handleConfirmCancelAppointment}
         onOpenChange={handleCancelAppointmentOpenChange}
       />

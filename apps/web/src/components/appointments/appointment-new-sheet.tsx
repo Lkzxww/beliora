@@ -13,17 +13,20 @@ import {
 } from "@/components/ui/sheet";
 import type {
   Appointment,
+  AppointmentCustomerOption,
   AppointmentProfessional,
   AppointmentService,
   AppointmentWeekDay,
 } from "@/types/appointment";
 
 type AppointmentNewSheetProps = Readonly<{
+  actionError?: string;
   appointment?: Appointment;
+  customers: AppointmentCustomerOption[];
   initialValues?: NewAppointmentFormValues;
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onSubmitAppointment: (values: NewAppointmentFormValues) => Promise<void>;
+  onSubmitAppointment: (values: NewAppointmentFormValues) => Promise<boolean>;
   mode?: "create" | "edit";
   professionals: AppointmentProfessional[];
   services: AppointmentService[];
@@ -31,7 +34,9 @@ type AppointmentNewSheetProps = Readonly<{
 }>;
 
 export function AppointmentNewSheet({
+  actionError,
   appointment,
+  customers,
   initialValues,
   isOpen,
   mode = "create",
@@ -57,12 +62,14 @@ export function AppointmentNewSheet({
             <SheetDescription className="text-[#74675d] dark:text-muted-foreground">
               {isEditMode
                 ? `Atualize os dados do atendimento de ${appointment?.customer.name ?? "cliente selecionado"}.`
-                : "Preencha os dados do atendimento para adicioná-lo à agenda mockada."}
+                : "Preencha os dados do atendimento para adicioná-lo à agenda."}
             </SheetDescription>
           </SheetHeader>
         </div>
 
         <AppointmentForm
+          actionError={actionError}
+          customers={customers}
           initialValues={initialValues}
           isOpen={isOpen}
           professionals={professionals}

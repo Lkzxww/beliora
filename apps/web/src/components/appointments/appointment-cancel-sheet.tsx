@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarX2 } from "lucide-react";
+import { CalendarX2, Loader2 } from "lucide-react";
 
 import { AppointmentStatusBadge } from "@/components/appointments/appointment-status";
 import { Button } from "@/components/ui/button";
@@ -15,14 +15,18 @@ import type { Appointment } from "@/types/appointment";
 
 type AppointmentCancelSheetProps = Readonly<{
   appointment?: Appointment;
+  errorMessage?: string;
   isOpen: boolean;
-  onConfirmCancel: () => void;
+  isPending?: boolean;
+  onConfirmCancel: () => Promise<void>;
   onOpenChange: (isOpen: boolean) => void;
 }>;
 
 export function AppointmentCancelSheet({
   appointment,
+  errorMessage,
   isOpen,
+  isPending = false,
   onConfirmCancel,
   onOpenChange,
 }: AppointmentCancelSheetProps) {
@@ -69,8 +73,17 @@ export function AppointmentCancelSheet({
 
               <p className="rounded-[1.25rem] border border-[#dfcaa9] bg-[#f8eedf] px-4 py-3 text-sm leading-6 text-[#6f6258] dark:border-[#c9a76a]/25 dark:bg-[#c9a76a]/10 dark:text-muted-foreground">
                 O atendimento continuará aparecendo na agenda, mas será marcado
-                como cancelado para preservar o histórico mockado.
+                como cancelado para preservar o histórico.
               </p>
+
+              {errorMessage ? (
+                <p
+                  role="alert"
+                  className="rounded-[1.25rem] border border-[#e8c7cf] bg-[#faedf0] px-4 py-3 text-sm font-semibold leading-6 text-[#8b3348] dark:border-[#f0bcc8]/25 dark:bg-[#7a2638]/[0.18] dark:text-[#f0bcc8]"
+                >
+                  {errorMessage}
+                </p>
+              ) : null}
             </div>
           ) : null}
 
@@ -85,10 +98,17 @@ export function AppointmentCancelSheet({
             </Button>
             <Button
               type="button"
-              onClick={onConfirmCancel}
-              disabled={!appointment || appointment.status === "canceled"}
+              onClick={() => {
+                void onConfirmCancel();
+              }}
+              disabled={
+                !appointment || appointment.status === "canceled" || isPending
+              }
               className="h-12 rounded-2xl bg-[#7a2638] px-5 text-sm font-semibold text-white shadow-[0_16px_34px_rgba(122,38,56,0.2)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#681f30] active:translate-y-px disabled:translate-y-0 dark:bg-[#9f3a50] dark:hover:bg-[#b0455d]"
             >
+              {isPending ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+              ) : null}
               Confirmar cancelamento
             </Button>
           </div>

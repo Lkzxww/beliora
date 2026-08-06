@@ -11,6 +11,7 @@
 
 export const AppointmentStatus = {
   SCHEDULED: 'SCHEDULED',
+  CONFIRMED: 'CONFIRMED',
   COMPLETED: 'COMPLETED',
   CANCELED: 'CANCELED'
 } as const

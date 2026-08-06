@@ -8,6 +8,7 @@
     "dev": "npm --workspace web run dev",
     "build": "npm --workspace web run build",
     "lint": "npm --workspace web run lint",
+    "seed:dev": "node prisma/seed-runner.mjs",
     "format": "prettier --write ."
   },
   "devDependencies": {

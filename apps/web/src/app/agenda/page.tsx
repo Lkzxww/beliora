@@ -3,28 +3,33 @@ import type { Metadata } from "next";
 import { AppointmentSchedule } from "@/components/appointments";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import {
-  appointmentProfessionals,
-  appointmentServices,
-  appointmentStatusOptions,
-  appointmentViewOptions,
-  mockAppointments,
-} from "@/mock/appointments";
+  getAppointmentOptions,
+  getAppointments,
+} from "@/services/appointments";
 
 export const metadata: Metadata = {
   title: "Agenda | Beliora",
   description: "Agenda semanal da Beliora",
 };
 
-export default function AgendaPage() {
+export const dynamic = "force-dynamic";
+
+export default async function AgendaPage() {
+  const [appointments, options] = await Promise.all([
+    getAppointments(),
+    getAppointmentOptions(),
+  ]);
+
   return (
     <DashboardLayout activePath="/agenda">
       <AppointmentSchedule
-        appointments={mockAppointments}
-        defaultSelectedAppointmentId={mockAppointments[0]?.id}
-        professionals={appointmentProfessionals}
-        services={appointmentServices}
-        statuses={appointmentStatusOptions}
-        viewOptions={appointmentViewOptions}
+        appointments={appointments}
+        customers={options.customers}
+        defaultSelectedAppointmentId={appointments[0]?.id}
+        professionals={options.professionals}
+        services={options.services}
+        statuses={options.statuses}
+        viewOptions={options.viewOptions}
       />
     </DashboardLayout>
   );

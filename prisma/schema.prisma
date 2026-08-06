@@ -9,6 +9,7 @@ datasource db {
 
 enum AppointmentStatus {
   SCHEDULED
+  CONFIRMED
   COMPLETED
   CANCELED
 }
@@ -66,6 +67,7 @@ model Customer {
   name  String
   phone String
   email String?
+  archivedAt DateTime?
 
   companyId String
   company   Company @relation(fields: [companyId], references: [id])
@@ -80,6 +82,7 @@ model Appointment {
 
   startsAt DateTime
   endsAt   DateTime
+  notes    String?
 
   status AppointmentStatus @default(SCHEDULED)
 
