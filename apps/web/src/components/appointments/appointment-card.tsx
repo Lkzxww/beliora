@@ -1,7 +1,11 @@
+import type { CSSProperties } from "react";
 import { Scissors, UserRound } from "lucide-react";
 
 import { AppointmentStatusBadge } from "@/components/appointments/appointment-status";
-import type { Appointment } from "@/types/appointment";
+import {
+  APPOINTMENT_SERVICE_FALLBACK_COLOR,
+  type Appointment,
+} from "@/types/appointment";
 import { cn } from "@/lib/utils";
 
 type AppointmentCardProps = Readonly<{
@@ -21,6 +25,15 @@ export function AppointmentCard({
   isSelected = false,
   onSelectAppointment,
 }: AppointmentCardProps) {
+  const serviceColor =
+    appointment.service.color ?? APPOINTMENT_SERVICE_FALLBACK_COLOR;
+  const selectedCardStyle: CSSProperties | undefined = isSelected
+    ? {
+        borderColor: serviceColor,
+        boxShadow: `0 18px 42px ${serviceColor}24`,
+      }
+    : undefined;
+
   return (
     <button
       type="button"
@@ -28,6 +41,7 @@ export function AppointmentCard({
       aria-label={`${appointment.customer.name}, ${appointment.service.name}, ${appointment.startTime}`}
       aria-selected={isSelected}
       onClick={() => onSelectAppointment?.(appointment)}
+      style={selectedCardStyle}
       className={cn(
         "group relative flex h-full min-h-[9.5rem] w-full cursor-pointer flex-col overflow-hidden rounded-[1.35rem] border border-[#eadbc9] bg-[#fffaf4] p-5 text-left shadow-[0_10px_26px_rgba(48,37,28,0.06)] transition-all duration-200 hover:-translate-y-1 hover:border-[#d6bf9f] hover:bg-white hover:shadow-[0_20px_46px_rgba(48,37,28,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a76a]/60 dark:border-white/10 dark:bg-white/[0.04] dark:hover:bg-white/[0.07]",
         compact && "min-h-[8.75rem] p-4",
@@ -37,6 +51,12 @@ export function AppointmentCard({
         className,
       )}
     >
+      <span
+        aria-hidden="true"
+        className="absolute inset-y-4 left-0 w-1 rounded-r-full opacity-85 transition-opacity duration-200 group-hover:opacity-100"
+        style={{ backgroundColor: serviceColor }}
+      />
+
       <AppointmentStatusBadge
         status={appointment.status}
         className={cn(
@@ -52,6 +72,7 @@ export function AppointmentCard({
             compact && "text-[0.88rem]",
             dense && "text-[0.76rem] leading-4",
           )}
+          style={{ color: serviceColor }}
         >
           {appointment.startTime} — {appointment.endTime}
         </p>
@@ -80,6 +101,7 @@ export function AppointmentCard({
               "mt-0.5 size-3.5 shrink-0 text-[#a37732]/75",
               dense && "size-3",
             )}
+            style={{ color: serviceColor }}
             aria-hidden="true"
           />
           <span

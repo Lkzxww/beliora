@@ -2,6 +2,8 @@ import {
   CalendarClock,
   Clock,
   CreditCard,
+  DollarSign,
+  Layers3,
   MapPin,
   Phone,
   Scissors,
@@ -56,6 +58,21 @@ export function AppointmentDetails({
       icon: Scissors,
       label: "Serviço",
       value: appointment.service.name,
+    },
+    {
+      icon: DollarSign,
+      label: "Preço",
+      value: appointment.service.priceLabel,
+    },
+    {
+      icon: Clock,
+      label: "Duração",
+      value: `${appointment.service.durationMinutes} min`,
+    },
+    {
+      icon: Layers3,
+      label: "Categoria",
+      value: appointment.service.category,
     },
     {
       icon: UserRound,

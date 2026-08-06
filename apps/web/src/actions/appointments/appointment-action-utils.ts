@@ -2,6 +2,7 @@ import { revalidatePath } from "next/cache";
 
 import { AppointmentStatus as PrismaAppointmentStatus } from "@/generated/prisma/client";
 import type { Prisma } from "@/generated/prisma/client";
+import { parseAppointmentDateTime } from "@/lib/appointment-time";
 import { prisma } from "@/lib/prisma";
 import type {
   Appointment,
@@ -73,13 +74,6 @@ export async function getDemoCompanyIdOrThrow() {
   return company.id;
 }
 
-export function parseAppointmentDateTime(isoDate: string, time: string) {
-  const [year = 0, month = 1, day = 1] = isoDate.split("-").map(Number);
-  const [hours = 0, minutes = 0] = time.split(":").map(Number);
-
-  return new Date(year, month - 1, day, hours, minutes, 0, 0);
-}
-
 export function mapAppointmentResult({
   appointment,
   notes,
@@ -131,6 +125,7 @@ export async function assertAppointmentRelationsBelongToCompany({
       id: true,
     },
     where: {
+      archivedAt: null,
       companyId,
       id: values.serviceId,
     },
@@ -138,7 +133,7 @@ export async function assertAppointmentRelationsBelongToCompany({
 
   if (!customer || !employee || !service) {
     throw new AppointmentActionError(
-      "Cliente, profissional ou serviço não pertence à empresa de demonstração.",
+      "Cliente, profissional ou serviço ativo não pertence à empresa de demonstração.",
     );
   }
 }

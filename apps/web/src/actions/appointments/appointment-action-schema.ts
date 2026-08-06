@@ -1,15 +1,12 @@
 import { z } from "zod";
 
+import {
+  appointmentTimePattern,
+  isEndTimeAfterStartTime,
+} from "@/lib/appointment-time";
 import type { AppointmentFormValues } from "@/types/appointment";
 
-const timePattern = /^([01]\d|2[0-3]):[0-5]\d$/;
 const isoDatePattern = /^\d{4}-\d{2}-\d{2}$/;
-
-function timeToMinutes(time: string) {
-  const [hours = 0, minutes = 0] = time.split(":").map(Number);
-
-  return hours * 60 + minutes;
-}
 
 export const appointmentActionSchema = z
   .object({
@@ -23,18 +20,21 @@ export const appointmentActionSchema = z
     startTime: z
       .string()
       .trim()
-      .regex(timePattern, "Informe um horário inicial válido."),
+      .regex(appointmentTimePattern, "Informe um horário inicial válido."),
     endTime: z
       .string()
       .trim()
-      .regex(timePattern, "Informe um horário final válido."),
+      .regex(appointmentTimePattern, "Informe um horário final válido."),
     notes: z.string().trim().min(1, "Adicione uma observação.").max(500),
   })
   .superRefine((values, context) => {
     if (
-      timePattern.test(values.startTime) &&
-      timePattern.test(values.endTime) &&
-      timeToMinutes(values.endTime) <= timeToMinutes(values.startTime)
+      appointmentTimePattern.test(values.startTime) &&
+      appointmentTimePattern.test(values.endTime) &&
+      !isEndTimeAfterStartTime({
+        endTime: values.endTime,
+        startTime: values.startTime,
+      })
     ) {
       context.addIssue({
         code: "custom",
