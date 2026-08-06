@@ -6,7 +6,11 @@ import {
   type CurrentTimeMarker,
 } from "@/components/appointments/appointment-calendar-utils";
 import { EmptyState } from "@/components/shared";
-import type { Appointment, AppointmentWeekDay } from "@/types/appointment";
+import {
+  APPOINTMENT_SERVICE_FALLBACK_COLOR,
+  type Appointment,
+  type AppointmentWeekDay,
+} from "@/types/appointment";
 import { cn } from "@/lib/utils";
 
 type AppointmentMobileListProps = Readonly<{
@@ -110,10 +114,15 @@ export function AppointmentMobileList({
                     <span
                       aria-hidden="true"
                       className={cn(
-                        "absolute -left-[1.03rem] top-5 z-10 size-2.5 rounded-full border-2 border-[#fffaf4] bg-[#c9a76a] shadow-sm dark:border-[#1b1714]",
+                        "absolute -left-[1.03rem] top-5 z-10 size-2.5 rounded-full border-2 border-[#fffaf4] shadow-sm dark:border-[#1b1714]",
                         appointment.id === selectedAppointmentId &&
-                          "bg-[#7a2638]",
+                          "shadow-[0_0_0_4px_rgba(122,38,56,0.12)]",
                       )}
+                      style={{
+                        backgroundColor:
+                          appointment.service.color ??
+                          APPOINTMENT_SERVICE_FALLBACK_COLOR,
+                      }}
                     />
                     <AppointmentCard
                       appointment={appointment}

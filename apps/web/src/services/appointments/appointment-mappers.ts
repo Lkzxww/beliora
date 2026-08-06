@@ -13,6 +13,10 @@ import type {
   AppointmentService,
   AppointmentStatus,
 } from "@/types/appointment";
+import {
+  normalizeServiceCategory,
+  normalizeServiceColor,
+} from "@/services/services/service-mappers";
 
 import { isDemoConfirmedAppointment } from "./demo-company";
 
@@ -162,9 +166,12 @@ export function mapServiceToAppointmentService(
   service: PrismaService,
 ): AppointmentService {
   return {
+    category: normalizeServiceCategory(service.category),
+    color: normalizeServiceColor(service.color),
     durationMinutes: service.duration,
     id: service.id,
     name: service.name,
+    price: service.price.toFixed(2),
     priceLabel: formatPriceLabel(service),
   };
 }

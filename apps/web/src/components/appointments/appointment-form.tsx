@@ -2,12 +2,19 @@
 
 import { useEffect, useMemo } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2 } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { Clock3, DollarSign, Loader2, Tag } from "lucide-react";
+import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  addMinutesToTime,
+  appointmentTimePattern,
+  isEndTimeAfterStartTime,
+  isValidAppointmentTime,
+} from "@/lib/appointment-time";
+import { cn } from "@/lib/utils";
 import type {
   AppointmentCustomerOption,
   AppointmentFormValues,
@@ -15,7 +22,6 @@ import type {
   AppointmentService,
   AppointmentWeekDay,
 } from "@/types/appointment";
-import { cn } from "@/lib/utils";
 
 type AppointmentFormProps = Readonly<{
   actionError?: string;
@@ -29,14 +35,6 @@ type AppointmentFormProps = Readonly<{
   submitLabel?: string;
   weekDays: AppointmentWeekDay[];
 }>;
-
-const timePattern = /^([01]\d|2[0-3]):[0-5]\d$/;
-
-function timeToMinutes(time: string) {
-  const [hours = 0, minutes = 0] = time.split(":").map(Number);
-
-  return hours * 60 + minutes;
-}
 
 function createAppointmentFormSchema({
   customerIds,
@@ -59,12 +57,12 @@ function createAppointmentFormSchema({
         .string()
         .trim()
         .min(1, "Informe o horário inicial.")
-        .regex(timePattern, "Use o formato HH:mm."),
+        .regex(appointmentTimePattern, "Use o formato HH:mm."),
       endTime: z
         .string()
         .trim()
         .min(1, "Informe o horário final.")
-        .regex(timePattern, "Use o formato HH:mm."),
+        .regex(appointmentTimePattern, "Use o formato HH:mm."),
       notes: z.string().trim().min(1, "Adicione uma observação."),
     })
     .superRefine((values, context) => {
@@ -101,9 +99,12 @@ function createAppointmentFormSchema({
       }
 
       if (
-        timePattern.test(values.startTime) &&
-        timePattern.test(values.endTime) &&
-        timeToMinutes(values.endTime) <= timeToMinutes(values.startTime)
+        appointmentTimePattern.test(values.startTime) &&
+        appointmentTimePattern.test(values.endTime) &&
+        !isEndTimeAfterStartTime({
+          endTime: values.endTime,
+          startTime: values.startTime,
+        })
       ) {
         context.addIssue({
           code: "custom",
@@ -164,31 +165,82 @@ export function AppointmentForm({
     [customers, professionals, services, weekDays],
   );
   const defaultValues: NewAppointmentFormValues = useMemo(
-    () =>
-      initialValues ?? {
-        customerId: customers[0]?.id ?? "",
-        employeeId: professionals[0]?.id ?? "",
-        serviceId: services[0]?.id ?? "",
-        isoDate: today?.isoDate ?? "",
-        startTime: "09:00",
-        endTime: "10:00",
-        notes: "",
-      },
+    () => {
+      const firstService = services[0];
+      const initialServiceIsAvailable = Boolean(
+        initialValues?.serviceId &&
+          services.some((service) => service.id === initialValues.serviceId),
+      );
+      const startTime = initialValues?.startTime ?? "09:00";
+      const serviceId = initialServiceIsAvailable
+        ? initialValues?.serviceId ?? ""
+        : firstService?.id ?? "";
+      const selectedDefaultService = services.find(
+        (service) => service.id === serviceId,
+      );
+      const endTime =
+        initialValues && initialServiceIsAvailable
+          ? initialValues.endTime
+          : addMinutesToTime(
+              startTime,
+              selectedDefaultService?.durationMinutes ?? 60,
+            );
+
+      return {
+        customerId: initialValues?.customerId ?? customers[0]?.id ?? "",
+        employeeId: initialValues?.employeeId ?? professionals[0]?.id ?? "",
+        endTime,
+        isoDate: initialValues?.isoDate ?? today?.isoDate ?? "",
+        notes: initialValues?.notes ?? "",
+        serviceId,
+        startTime,
+      };
+    },
     [customers, initialValues, professionals, services, today?.isoDate],
   );
   const {
     formState: { errors, isSubmitting },
+    getValues,
     handleSubmit,
     register,
     reset,
+    setValue,
+    control,
   } = useForm<NewAppointmentFormValues>({
     defaultValues,
     resolver: zodResolver(schema),
   });
+  const selectedServiceId = useWatch({
+    control,
+    name: "serviceId",
+  });
+  const selectedService = useMemo(
+    () => services.find((service) => service.id === selectedServiceId),
+    [selectedServiceId, services],
+  );
 
   useEffect(() => {
     reset(defaultValues);
   }, [defaultValues, isOpen, reset]);
+
+  function updateEndTimeFromService({
+    serviceId,
+    startTime,
+  }: {
+    serviceId: string;
+    startTime: string;
+  }) {
+    const service = services.find((item) => item.id === serviceId);
+
+    if (!service || !isValidAppointmentTime(startTime)) {
+      return;
+    }
+
+    setValue("endTime", addMinutesToTime(startTime, service.durationMinutes), {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+  }
 
   async function submitForm(values: NewAppointmentFormValues) {
     const wasSuccessful = await onSubmitAppointment(values);
@@ -203,6 +255,8 @@ export function AppointmentForm({
     onCancel();
   }
 
+  const serviceField = register("serviceId");
+  const startTimeField = register("startTime");
   const timeRangeError =
     errors.endTime?.type === "custom" ? errors.endTime.message : undefined;
   const endTimeFieldError =
@@ -259,7 +313,14 @@ export function AppointmentForm({
           <label className="space-y-2.5">
             <span className={fieldLabelClassName}>Serviço</span>
             <select
-              {...register("serviceId")}
+              {...serviceField}
+              onChange={(event) => {
+                void serviceField.onChange(event);
+                updateEndTimeFromService({
+                  serviceId: event.target.value,
+                  startTime: getValues("startTime"),
+                });
+              }}
               className={selectClassName}
               aria-invalid={Boolean(errors.serviceId)}
             >
@@ -272,6 +333,55 @@ export function AppointmentForm({
             <FieldError message={errors.serviceId?.message} />
           </label>
         </div>
+
+        {selectedService ? (
+          <div className="grid gap-3 rounded-[1.35rem] border border-[#ead9c4] bg-[#fffaf4]/80 p-4 shadow-sm dark:border-white/10 dark:bg-white/[0.035] sm:grid-cols-3">
+            <div className="flex items-center gap-3">
+              <span
+                className="grid size-9 shrink-0 place-items-center rounded-xl bg-white text-[#7a2638] shadow-sm dark:bg-white/10 dark:text-[#f0bcc8]"
+                aria-hidden="true"
+              >
+                <Clock3 className="size-4" />
+              </span>
+              <div className="min-w-0">
+                <p className={fieldLabelClassName}>Duração</p>
+                <p className="mt-1 truncate text-sm font-semibold text-[#211b18] dark:text-foreground">
+                  {selectedService.durationMinutes} min
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <span
+                className="grid size-9 shrink-0 place-items-center rounded-xl bg-white text-[#7a2638] shadow-sm dark:bg-white/10 dark:text-[#f0bcc8]"
+                aria-hidden="true"
+              >
+                <DollarSign className="size-4" />
+              </span>
+              <div className="min-w-0">
+                <p className={fieldLabelClassName}>Preço</p>
+                <p className="mt-1 truncate text-sm font-semibold text-[#211b18] dark:text-foreground">
+                  {selectedService.priceLabel}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <span
+                className="grid size-9 shrink-0 place-items-center rounded-xl bg-white text-[#7a2638] shadow-sm dark:bg-white/10 dark:text-[#f0bcc8]"
+                aria-hidden="true"
+              >
+                <Tag className="size-4" />
+              </span>
+              <div className="min-w-0">
+                <p className={fieldLabelClassName}>Categoria</p>
+                <p className="mt-1 truncate text-sm font-semibold text-[#211b18] dark:text-foreground">
+                  {selectedService.category}
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         <label className="space-y-2.5">
           <span className={fieldLabelClassName}>Data</span>
@@ -290,7 +400,14 @@ export function AppointmentForm({
           <label className="space-y-2.5">
             <span className={fieldLabelClassName}>Horário Inicial</span>
             <Input
-              {...register("startTime")}
+              {...startTimeField}
+              onChange={(event) => {
+                void startTimeField.onChange(event);
+                updateEndTimeFromService({
+                  serviceId: getValues("serviceId"),
+                  startTime: event.target.value,
+                });
+              }}
               className={cn(fieldClassName, timeRangeError && "border-[#9f2f45]")}
               type="time"
               aria-invalid={Boolean(errors.startTime || timeRangeError)}

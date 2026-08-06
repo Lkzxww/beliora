@@ -1,3 +1,7 @@
+import type { ServiceCategory, ServiceColor } from "@/types/service";
+
+export const APPOINTMENT_SERVICE_FALLBACK_COLOR = "#7a2638" as const;
+
 export type AppointmentStatus =
   | "confirmed"
   | "scheduled"
@@ -32,7 +36,10 @@ export type AppointmentProfessional = {
 export type AppointmentService = {
   id: string;
   name: string;
+  category: ServiceCategory;
+  color: ServiceColor;
   durationMinutes: number;
+  price: string;
   priceLabel: string;
 };
 

@@ -23,13 +23,13 @@ function formatPriceLabel(service: PrismaService) {
   }).format(service.price.toNumber());
 }
 
-function normalizeServiceCategory(category: string): ServiceCategory {
+export function normalizeServiceCategory(category: string): ServiceCategory {
   const knownCategory = SERVICE_CATEGORIES.find((item) => item === category);
 
   return knownCategory ?? "Outros";
 }
 
-function normalizeServiceDuration(duration: number): ServiceDuration {
+export function normalizeServiceDuration(duration: number): ServiceDuration {
   const knownDuration = SERVICE_DURATION_OPTIONS.find(
     (durationOption) => durationOption === duration,
   );
@@ -37,7 +37,7 @@ function normalizeServiceDuration(duration: number): ServiceDuration {
   return knownDuration ?? 60;
 }
 
-function normalizeServiceColor(color: string): ServiceColor {
+export function normalizeServiceColor(color: string): ServiceColor {
   const knownColor = SERVICE_COLOR_OPTIONS.find((item) => item === color);
 
   return knownColor ?? SERVICE_COLOR_OPTIONS[0];

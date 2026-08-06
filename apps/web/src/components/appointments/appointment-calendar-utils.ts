@@ -3,6 +3,7 @@ import type {
   AppointmentViewMode,
   AppointmentWeekDay,
 } from "@/types/appointment";
+import { getDurationMinutes, timeToMinutes } from "@/lib/appointment-time";
 
 const weekDayLabels = [
   "Domingo",
@@ -88,6 +89,7 @@ type AppointmentLayoutOptions = TimeOffsetOptions &
 
 type AppointmentTimeBounds = Readonly<{
   appointment: Appointment;
+  durationMinutes: number;
   endsAt: number;
   startsAt: number;
 }>;
@@ -205,12 +207,6 @@ export function getAppointmentCalendarSummary({
   };
 }
 
-export function timeToMinutes(time: string) {
-  const [hours = 0, minutes = 0] = time.split(":").map(Number);
-
-  return hours * 60 + minutes;
-}
-
 export function getCurrentTimeMarker(date: Date = new Date()) {
   return {
     isoDate: formatIsoDate(date),
@@ -254,7 +250,7 @@ function getAppointmentHeight(
   appointment: AppointmentTimeBounds,
   options: AppointmentLayoutOptions,
 ) {
-  const durationMinutes = Math.max(appointment.endsAt - appointment.startsAt, 30);
+  const durationMinutes = Math.max(appointment.durationMinutes, 30);
   const proportionalHeight =
     (durationMinutes / 60) * options.hourHeightPixels;
 
@@ -331,6 +327,10 @@ export function getDayAppointmentLayouts(
   const sortedAppointments = sortAppointmentsByTime(appointments).map(
     (appointment) => ({
       appointment,
+      durationMinutes: getDurationMinutes({
+        endTime: appointment.endTime,
+        startTime: appointment.startTime,
+      }),
       endsAt: timeToMinutes(appointment.endTime),
       startsAt: timeToMinutes(appointment.startTime),
     }),
