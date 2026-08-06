@@ -75,6 +75,7 @@ export async function getAppointmentOptions(): Promise<AppointmentOptions> {
         name: "asc",
       },
       where: {
+        archivedAt: null,
         companyId: company.id,
       },
     }),
