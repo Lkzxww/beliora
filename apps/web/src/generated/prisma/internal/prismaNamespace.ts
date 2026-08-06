@@ -860,9 +860,12 @@ export type EmployeeScalarFieldEnum = (typeof EmployeeScalarFieldEnum)[keyof typ
 export const ServiceScalarFieldEnum = {
   id: 'id',
   name: 'name',
+  category: 'category',
   description: 'description',
   duration: 'duration',
   price: 'price',
+  color: 'color',
+  archivedAt: 'archivedAt',
   companyId: 'companyId',
   createdAt: 'createdAt'
 } as const

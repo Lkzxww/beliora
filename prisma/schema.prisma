@@ -50,9 +50,12 @@ model Employee {
 model Service {
   id          String @id @default(cuid())
   name        String
+  category    String @default("Outros")
   description String?
   duration    Int
   price       Decimal
+  color       String @default("#7a2638")
+  archivedAt  DateTime?
 
   companyId String
   company   Company @relation(fields: [companyId], references: [id])
